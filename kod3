@@ -1,0 +1,63 @@
+from mesa import Agent, Model
+from mesa.time import RandomActivation
+import matplotlib.pyplot as plt
+
+# --- 1. Kısım: Sınıf Tanımları ---
+
+class Etmen(Agent):
+    """Başlangıç varlık değerine sahip bir etmen."""
+    def __init__(self, unique_id, model):
+        # DÜZELTME BURADA:
+        # Yeni Mesa sürümünde super().__init__ içine sadece 'model' gönderilir.
+        super().__init__(model) 
+        # unique_id'yi elle atıyoruz:
+        self.unique_id = unique_id
+        self.varlik = 1 
+
+    def step(self):
+        if self.varlik == 0:
+            return
+        # Mesa 3.0 uyarılarına takılmamak için alternatif seçim yöntemi
+        # (Eski kodunuz da çalışır ama bu daha güvenlidir)
+        other_agents = [a for a in self.model.schedule.agents if a is not self]
+        if len(other_agents) > 0:
+            baska_etmen = self.random.choice(other_agents)
+            baska_etmen.varlik += 1
+            self.varlik -= 1
+
+class Cevre(Model):
+    """Etmenlerin yer alacağı çevre (Model)."""
+    def __init__(self, N):
+        # Model'in özelliklerini yükle
+        super().__init__()
+        
+        self.num_agents = N
+        self.schedule = RandomActivation(self)
+        
+        for i in range(self.num_agents):
+            a = Etmen(i, self)
+            self.schedule.add(a)
+
+    def step(self):
+        self.schedule.step()
+
+# --- 2. Kısım: Çalıştırma ve Görselleştirme ---
+
+print("Simülasyon başlıyor...")
+yeni_model = Cevre(10)
+
+for i in range(10):
+    yeni_model.step()
+
+etmen_varlik = [a.varlik for a in yeni_model.schedule.agents]
+
+# Grafiği çizdir
+plt.figure(figsize=(8, 6))
+plt.hist(etmen_varlik, bins=range(min(etmen_varlik), max(etmen_varlik) + 2), align='left', rwidth=0.8, color='skyblue', edgecolor='black')
+plt.title("Etmenlerin Varlık Dağılımı")
+plt.xlabel("Varlık Miktarı")
+plt.ylabel("Etmen Sayısı")
+plt.grid(axis='y', alpha=0.5)
+plt.show()
+
+print("İşlem tamamlandı.")
